@@ -37,16 +37,25 @@ HUES = [
 
 
 def addArc(dwg, group, ctr, iradius, oradius, t0, t1, color):
-    """ Adds an arc that bulges to the right as it moves from p0 to p1 """
+    """
+    Adds a filled arc segment between iradius and oradius from t0 to t1 radians
+    """
     if t1 < t0:
         # swap -- always do the increasing arc...
         t = t0
         t0 = t1
         t1 = t
 
+    # Normalize to <= a full circle.
     while t1 - t0 > 2 * math.pi:
         t1 = t1 - 2 * math.pi
 
+    # An SVG arc is defined by endpoints, a "large arc" flag and a "sweep"
+    # flag.  We could set the large arc flag, which would generally work,
+    # but when you get to a full circle, the start and end points are the
+    # same...so you get nothing at all.  Instead, we break it into two
+    # pieces and always use the small arc.  See here:
+    # https://www.w3.org/TR/SVG/paths.html#PathDataEllipticalArcCommands
     t2 = None
     if t1 - t0 > math.pi:
         t2 = t1
@@ -88,6 +97,19 @@ def addArc(dwg, group, ctr, iradius, oradius, t0, t1, color):
 
 
 def get_data(fn):
+    """
+    Reads the data from an Excel spreadsheet.  Format is:
+
+    A       A1      A11     1.2
+                    A12     0.8
+            A2      A21     2.3
+    B       B1      B11     2.1
+
+    Where A and B are the inner ring, A1, A2 and B1 are the next ring,
+    with A1 and A2 subdividing the arc of A.  Likewise with the third
+    ring, with A11 and A12 subdividing A1.  Arc sizes are the sums of
+    the values in the fourth column.
+    """
     wb = openpyxl.load_workbook(fn)
     ws = wb.active
 
