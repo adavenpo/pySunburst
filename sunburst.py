@@ -15,10 +15,22 @@ FONT_COLOUR = '#555555'
 FONT_SIZE = 12
 FONT_SIZE_STR = str(FONT_SIZE) + 'px'
 FONT_NAME = 'Helvetica'
-COLOR_LIGHTNESS = 0.25
-COLOR_INCREMENT = 0.05
-RING_WIDTH = 50
-RING_START = 120
+COLOR_LIGHTNESS = 0.30
+COLOR_INCREMENT = 0.10
+RING_WIDTH = 60
+RING_START = 100
+
+HUES = [
+    0.0   / 255,
+    70.0  / 255,
+    15.0  / 255,
+    145.0 / 255,
+    235.0 / 255,
+    120.0 / 255,
+    35.0  / 255,
+    210.0 / 255,
+    100.0 / 255,
+]
 
 def addArc(dwg, group, ctr, iradius, oradius, t0, t1, color):
     """ Adds an arc that bulges to the right as it moves from p0 to p1 """
@@ -109,7 +121,7 @@ def propogate_geo(data, radius):
     v = data['value']
     ts = data['ts']
     te = data['te']
-    for key in data['children']:
+    for key in sorted(data['children']):
         data['children'][key]['ts'] = ts + (cv * (te - ts) / v)
         cv += data['children'][key]['value']
         data['children'][key]['te'] = ts + (cv * (te - ts) / v)
@@ -119,26 +131,30 @@ def propogate_geo(data, radius):
 
 
 def propogate_color(data, hue, lvl = 0):
-    data['rgb'] = colorsys.hls_to_rgb(
-       hue, COLOR_LIGHTNESS + lvl * COLOR_INCREMENT, 1)
+    # https://www.w3.org/TR/SVG11/types.html#ColorKeywords
+    rgb = colorsys.hls_to_rgb(hue, COLOR_LIGHTNESS + lvl * COLOR_INCREMENT, 1)
+    data['rgb'] = tuple([ int(255*x) for x in list(rgb) ])
 
-    for key in data['children']:
+    for key in sorted(data['children']):
         propogate_color(data['children'][key], hue, lvl + 1)
     
 
 def add_arcs(dwg, group, data, ctr):
     for key in data['children']:
         c = data['children'][key]
-        color = 'rgb({0},{1},{2})'.format(*[int(255*x) for x in list(c['rgb'])])
+        color = 'rgb({0},{1},{2})'.format(*c['rgb'])
         addArc(dwg, group, ctr, iradius = c['r0'], oradius = c['r1'],
                t0 = c['ts'], t1 = c['te'], color = color)
         tm = (c['ts'] + c['te']) / 2
-        x = ctr[0] + (((c['r0'] + c['r1']) / 2) * math.cos(tm)) - (5 * len(key))
+        x = ctr[0] + (((c['r0'] + c['r1']) / 2) * math.cos(tm))
         y = ctr[1] - (((c['r0'] + c['r1']) / 2) * math.sin(tm))
-        a = dwg.text(key, insert = (x, y + FONT_SIZE / 2), font_size = FONT_SIZE_STR,
+        a = dwg.text(key, insert = (x, y + FONT_SIZE / 2),
+                     font_size = FONT_SIZE_STR,
                      text_anchor = 'middle',
                      stroke = 'none', fill = 'black')
         group.add(a)
+        # group.add(dwg.line(start = (x, y-5), end = (x, y+5), stroke = 'green'))
+        # group.add(dwg.line(start = (x-5, y), end = (x+5, y), stroke = 'green'))
         add_arcs(dwg, group, c, ctr)
 
 
@@ -153,6 +169,29 @@ def add_test_arcs(dwg, group):
            t0 = 0, t1 = 2 * math.pi, color = 'lavender')
 
 
+def colorbar(dwg, group):
+    for h in range(0,255):
+        rgb = colorsys.hls_to_rgb(h/255.0, COLOR_LIGHTNESS, 0.1)
+        rgb = tuple([ int(255*x) for x in list(rgb) ])
+        color = 'rgb({0},{1},{2})'.format(*rgb)
+        group.add(dwg.rect(insert = (4 * h, 700), size=(4, 20),
+                           stroke = color, fill = color))
+
+    for h in range(0,255):
+        rgb = colorsys.hls_to_rgb(h/255.0, COLOR_LIGHTNESS, 0.5)
+        rgb = tuple([ int(255*x) for x in list(rgb) ])
+        color = 'rgb({0},{1},{2})'.format(*rgb)
+        group.add(dwg.rect(insert = (4 * h, 720), size=(4, 20),
+                           stroke = color, fill = color))
+
+    for h in range(0,255):
+        rgb = colorsys.hls_to_rgb(h/255.0, COLOR_LIGHTNESS, 0.9)
+        rgb = tuple([ int(255*x) for x in list(rgb) ])
+        color = 'rgb({0},{1},{2})'.format(*rgb)
+        group.add(dwg.rect(insert = (4 * h, 740), size=(4, 20),
+                           stroke = color, fill = color))
+
+
 def main():
     if len(sys.argv) <= 1:
         print 'usage: {0} <spreadsheet>'.format(sys.argv[0])
@@ -163,18 +202,19 @@ def main():
     propogate_geo(data, RING_START)
 
     N = len(data['children'])
-    for idx, key in enumerate(data['children'].keys()):
-        propogate_color(data['children'][key],
-                        float(idx+1) / N+1)
+    for idx, key in enumerate(sorted(data['children'].keys())):
+        #propogate_color(data['children'][key], float(idx+1) / N+1)
+        propogate_color(data['children'][key], HUES[idx])
 
     dwg = svgwrite.Drawing(filename="test.svg", debug=True, size=(1024,768))
     group = dwg.add(dwg.g(id = 'name', stroke = 'black', stroke_width = 1,
                           fill = 'none', fill_opacity = 1 ))
     group.add(dwg.rect(insert = (0,0), size = (1024-1,768-1)))
 
-    #add_test_arcs(dwg, group)
-
     add_arcs(dwg, group, data, ctr = [512, 384])
+
+    #add_test_arcs(dwg, group)
+    #colorbar(dwg, group)
 
     dwg.save()
 
