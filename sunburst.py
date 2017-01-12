@@ -1,7 +1,5 @@
 #! /usr/bin/env python
 
-# http://stackoverflow.com/questions/25019441/arc-pie-cut-in-svgwrite
-
 import sys
 import math
 import colorsys
@@ -9,9 +7,10 @@ import openpyxl
 import svgwrite
 
 
-LINE_COLOUR = 'white'
-FONT_COLOUR = '#555555'
-#FONT_SIZE_STR = str(10 * SCALE) + 'px'
+# Parameters you may wish to change...
+
+LINE_COLOR = 'black'
+FONT_COLOR = 'black'
 FONT_SIZE = 12
 FONT_SIZE_STR = str(FONT_SIZE) + 'px'
 FONT_NAME = 'Helvetica'
@@ -19,6 +18,10 @@ COLOR_LIGHTNESS = 0.30
 COLOR_INCREMENT = 0.10
 RING_WIDTH = 60
 RING_START = 100
+
+# Each segment of the inner-most ring starts with one of these hues and
+# COLOR_LIGHTNESS, with a saturaton of 1.0.  Subsequent rings maintain the
+# inner ring's hue and decrease lightness by COLOR_INCREMENT.
 
 HUES = [
     0.0   / 255,
@@ -31,6 +34,7 @@ HUES = [
     210.0 / 255,
     100.0 / 255,
 ]
+
 
 def addArc(dwg, group, ctr, iradius, oradius, t0, t1, color):
     """ Adds an arc that bulges to the right as it moves from p0 to p1 """
@@ -79,7 +83,7 @@ def addArc(dwg, group, ctr, iradius, oradius, t0, t1, color):
     path +=  ' A {xoradius},{yoradius} {rot} 0,1 {x0o},{y0o}'.format(**args)
     path += ' Z'
         
-    group.add(dwg.path(d = path, fill = color, stroke = 'black',
+    group.add(dwg.path(d = path, fill = color, stroke = LINE_COLOR,
                                fill_opacity = '1', stroke_width = 2))
 
 
@@ -151,7 +155,7 @@ def add_arcs(dwg, group, data, ctr):
         a = dwg.text(key, insert = (x, y + FONT_SIZE / 2),
                      font_size = FONT_SIZE_STR,
                      text_anchor = 'middle',
-                     stroke = 'none', fill = 'black')
+                     stroke = 'none', fill = FONT_COLOR)
         group.add(a)
         # group.add(dwg.line(start = (x, y-5), end = (x, y+5), stroke = 'green'))
         # group.add(dwg.line(start = (x-5, y), end = (x+5, y), stroke = 'green'))
@@ -207,7 +211,7 @@ def main():
         propogate_color(data['children'][key], HUES[idx])
 
     dwg = svgwrite.Drawing(filename="test.svg", debug=True, size=(1024,768))
-    group = dwg.add(dwg.g(id = 'name', stroke = 'black', stroke_width = 1,
+    group = dwg.add(dwg.g(id = 'name', stroke = LINE_COLOR, stroke_width = 1,
                           fill = 'none', fill_opacity = 1 ))
     group.add(dwg.rect(insert = (0,0), size = (1024-1,768-1)))
 
