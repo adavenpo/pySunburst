@@ -1,5 +1,6 @@
 #! /usr/bin/env python
 
+# https://svgwrite.readthedocs.io/en/latest/index.html
 # https://www.w3.org/TR/SVG11/Overview.html
 
 import sys
