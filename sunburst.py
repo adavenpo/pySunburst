@@ -1,5 +1,7 @@
 #! /usr/bin/env python
 
+# https://www.w3.org/TR/SVG11/Overview.html
+
 import sys
 import math
 import colorsys
@@ -132,6 +134,10 @@ def get_data(fn):
 
 
 def propogate_values(data):
+    """
+    Values propogate in from the outer ring, with each inner ring arc the sum
+    of the sub-arcs in the next ring.
+    """
     if len(data['children']) == 0:
         return
     value = 0
@@ -143,6 +149,9 @@ def propogate_values(data):
 
 
 def propogate_geo(data, radius):
+    """
+    Subdivide each arc among its children by value, and set radii.
+    """
     cv = 0
     v = data['value']
     ts = data['ts']
@@ -157,6 +166,9 @@ def propogate_geo(data, radius):
 
 
 def propogate_color(data, hue, lvl = 0):
+    """
+    Sets the RGB from the given hue.  The lightness increases with each ring.
+    """
     # https://www.w3.org/TR/SVG11/types.html#ColorKeywords
     rgb = colorsys.hls_to_rgb(hue, COLOR_LIGHTNESS + lvl * COLOR_INCREMENT, 1)
     data['rgb'] = tuple([ int(255*x) for x in list(rgb) ])
@@ -166,6 +178,9 @@ def propogate_color(data, hue, lvl = 0):
     
 
 def add_arcs(dwg, group, data, ctr):
+    """
+    Recursively add all of the arcs to the SVG.
+    """
     for key in data['children']:
         c = data['children'][key]
         color = 'rgb({0},{1},{2})'.format(*c['rgb'])
@@ -179,6 +194,7 @@ def add_arcs(dwg, group, data, ctr):
                      text_anchor = 'middle',
                      stroke = 'none', fill = FONT_COLOR)
         group.add(a)
+        # + sign at the center point
         # group.add(dwg.line(start = (x, y-5), end = (x, y+5), stroke = 'green'))
         # group.add(dwg.line(start = (x-5, y), end = (x+5, y), stroke = 'green'))
         add_arcs(dwg, group, c, ctr)
